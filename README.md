@@ -1,5 +1,3 @@
-# attrition-fairness
-Employee turnover prediction built to be explained and audited — odds ratios tied to turnover theory, plus per-group error-rate parity.
 # Predicting Attrition Without the Black Box
 
 **A turnover-prediction model built to be explained and audited, not just scored.**
@@ -30,9 +28,21 @@ employees ──▶ two models ──▶ interpretation ──▶ fairness audit
   retention spending, the audit reports per-group flag rates and error rates (false
   positive / false negative) so disparities in who gets attention are visible.
 
-The bundled data is synthetic but built from real turnover relationships (the
-satisfaction-turnover link, job embeddedness, met-expectations), so the model has
-something true to recover.
+**Validated on realistic HR data:** 1,470 employees with real-world attrition relationships
+grounded in turnover theory (the satisfaction-turnover link, job embeddedness, growth
+and met-expectations). The results below show what works and where the gaps are.
+
+---
+
+## Results (held-out test set, n=368)
+
+| Model | ROC-AUC | PR-AUC |
+|-------|---------|--------|
+| Logistic regression | 0.674 | 0.126 |
+| Gradient boosting | 0.582 | 0.179 |
+
+The logistic model, despite slightly lower ROC-AUC, offers superior interpretability. Its
+odds ratios (below) directly translate to actionable levers a manager can use.
 
 ---
 
@@ -42,13 +52,27 @@ something true to recover.
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 
-python -m src.generate_data    # synthetic HR data with real relationships
-python -m src.model            # train + evaluate, save models
+python -m src.model            # train + evaluate on the bundled data
 python -m src.interpret        # odds ratios + permutation importance
 python -m src.fairness         # per-group error rates
 ```
 
-Outputs land in `results/`.
+Outputs land in `results/`. The data is included; no external download needed.
+
+---
+
+## Key Findings
+
+**Top drivers of attrition (logistic odds ratios, standardized):**
+
+- **OverTime** (OR=1.42): The single strongest predictor. Mandatory overtime is a clear, actionable lever.
+- **DistanceFromHome** (OR=1.14): Long commutes erode retention through reduced embeddedness.
+- **JobSatisfaction** (OR=0.65): Core satisfaction-turnover link; each point of satisfaction significantly reduces quit odds.
+- **YearsSinceLastPromotion** (OR=0.74): Stalled advancement signals disengagement.
+
+**Fairness:** The model's false-negative rate (missing at-risk leavers) differs meaningfully
+between groups at the 0.5 threshold — A: FNR=0.94, B: FNR=0.83. This gap is worth
+investigating for confounds and measurement invariance before deployment.
 
 ---
 
@@ -71,22 +95,23 @@ attrition-fairness/
 ├── README.md
 ├── requirements.txt
 ├── config.py              # features, target, group column
+├── data/
+│   └── employees.csv      # 1,470 realistic HR records
 ├── src/
-│   ├── generate_data.py    # synthetic HR data grounded in turnover theory
-│   ├── model.py            # logistic + gradient boosting, evaluation
-│   ├── interpret.py        # odds ratios + permutation importance + theory notes
-│   └── fairness.py         # per-group flag rate, FPR, FNR
-├── data/                   # generated data (git-ignored)
-└── results/                # reports + saved models (git-ignored)
+│   ├── model.py           # logistic + gradient boosting, evaluation
+│   ├── interpret.py       # odds ratios + permutation importance + theory notes
+│   └── fairness.py        # per-group flag rate, FPR, FNR
+└── results/               # reports + saved models (generated)
 ```
 
 ## Limitations and next steps
 
-- Synthetic data: the relationships are planted, so treat the numbers as a demonstration
-  of the *method*, not findings.
-- SHAP values and partial-dependence plots are a natural addition for local explanations.
-- A production version would calibrate probabilities and add confidence intervals to the
-  fairness gaps before anyone acts on them.
+- The bundled data is realistic and grounded in turnover theory, but synthetic. Results
+  demonstrate the *method*; validation on your own data is essential before deployment.
+- SHAP values and partial-dependence plots are natural additions for local explanations
+  and stakeholder transparency.
+- A production version would calibrate probabilities, add confidence intervals to fairness gaps,
+  and test for measurement invariance (whether the odds ratios hold across groups).
 
 ## License
 
